@@ -8,7 +8,7 @@ export const AI_GATEWAY_MODELS = [
 
 export type GatewayModelId = (typeof AI_GATEWAY_MODELS)[number]["id"];
 
-export const DEFAULT_MODEL: GatewayModelId = AI_GATEWAY_MODELS[0].id;
+export const DEFAULT_MODEL: GatewayModelId = AI_GATEWAY_MODELS[2].id;
 
 const KNOWN = new Set<string>(AI_GATEWAY_MODELS.map((m) => m.id));
 
