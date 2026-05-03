@@ -8,6 +8,8 @@ import { SparkleBox } from "./SparkleBox";
 
 const ROMAN = ["i", "ii", "iii", "iv", "v"] as const;
 
+const SESSION_AUTO_RAN_KEY = "horoscope:autoRanThisSession";
+
 type StreamEvent =
   | { type: "vibe"; index: number; vibe: string }
   | { type: "forecast"; forecast: string }
@@ -82,7 +84,9 @@ export function HoroscopeClient({
   const [memeUrl, setMemeUrl] = useState<string | null>(null);
   const [horoscopeRunOnce, setHoroscopeRunOnce] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  const [showModelPicker, setShowModelPicker] = useState(false);
   const modelMenuRef = useRef<HTMLSpanElement>(null);
+  const autoRanRef = useRef(false);
 
   const currentModelShort = useMemo(
     () => AI_GATEWAY_MODELS.find((m) => m.id === model)?.short ?? model,
@@ -116,7 +120,11 @@ export function HoroscopeClient({
     return () => document.removeEventListener("keydown", onKey);
   }, [modelMenuOpen]);
 
-  const readHoroscope = useCallback(async () => {
+  useEffect(() => {
+    if (!showModelPicker) setModelMenuOpen(false);
+  }, [showModelPicker]);
+
+  const readHoroscope = useCallback(async (fromAutoRun = false) => {
     const modelForThisRun = model;
     setHoroscopeLoading(true);
     setHoroscopeError(null);
@@ -165,8 +173,23 @@ export function HoroscopeClient({
     } finally {
       setHoroscopeLoading(false);
       setHoroscopeRunOnce(true);
+      if (fromAutoRun && typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem(SESSION_AUTO_RAN_KEY, "1");
+        } catch {
+          /* quota / private mode */
+        }
+      }
     }
   }, [initialHeadlines, model, n]);
+
+  useEffect(() => {
+    if (autoRanRef.current) return;
+    autoRanRef.current = true;
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem(SESSION_AUTO_RAN_KEY) === "1") return;
+    void readHoroscope(true);
+  }, [readHoroscope]);
 
   const generateMemeClick = useCallback(async () => {
     if (!forecast?.trim()) return;
@@ -208,8 +231,38 @@ export function HoroscopeClient({
   const showRowSpinner = (i: number) =>
     horoscopeLoading && vibes[i] === undefined;
 
+  const showHoroscopeNav =
+    showModelPicker ||
+    horoscopeLoading ||
+    horoscopeError != null ||
+    !horoscopeRunOnce;
+
   return (
     <main className="relative mx-auto max-w-6xl px-4 pb-24 pt-14 sm:pt-20">
+      <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={showModelPicker}
+          aria-label="Show custom model picker"
+          onClick={() => setShowModelPicker((v) => !v)}
+          className="group flex max-w-[min(100%,calc(100vw-5rem))] cursor-pointer flex-wrap items-center justify-end gap-2 border-none bg-transparent p-0 text-right text-[10px] tracking-wide text-zinc-600 transition hover:text-zinc-300"
+        >
+          <span className="whitespace-nowrap">custom model</span>
+          <span
+            className={
+              showModelPicker
+                ? "relative h-3 w-6 rounded-full bg-violet-500/70 transition"
+                : "relative h-3 w-6 rounded-full bg-zinc-700 transition"
+            }
+          >
+            <span
+              className={`absolute top-0.5 h-2 w-2 rounded-full bg-zinc-100 transition-[left] ${showModelPicker ? "left-[14px]" : "left-0.5"}`}
+            />
+          </span>
+        </button>
+      </div>
+
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-40 opacity-40"
         aria-hidden
@@ -228,24 +281,27 @@ export function HoroscopeClient({
         </h1>
       </header>
 
+      {showHoroscopeNav ? (
       <nav
-        className={`animate-fade-in mb-10 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-[var(--muted)] ${modelMenuOpen ? "relative z-[9999]" : ""}`}
+        className={`animate-fade-in mb-10 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-[var(--muted)] ${modelMenuOpen && showModelPicker ? "relative z-[9999]" : ""}`}
         aria-label="Horoscope controls"
       >
         <button
           type="button"
-          onClick={readHoroscope}
+          onClick={() => void readHoroscope()}
           disabled={horoscopeLoading || memeLoading}
           className="cursor-pointer border-none bg-transparent p-0 underline decoration-white/20 underline-offset-[5px] transition hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {horoscopeLoading
             ? "Consulting the stars…"
-            : horoscopeRunOnce
+            : showModelPicker && horoscopeRunOnce
               ? "Read again"
               : "Read my horoscope"}
         </button>
-        <span className="select-none text-zinc-600">with</span>
-        <span ref={modelMenuRef} className="relative inline-flex items-baseline">
+        {showModelPicker ? (
+          <>
+            <span className="select-none text-zinc-600">with</span>
+            <span ref={modelMenuRef} className="relative inline-flex items-baseline">
           <button
             type="button"
             id="horoscope-model-trigger"
@@ -306,8 +362,11 @@ export function HoroscopeClient({
               ))}
             </ul>
           ) : null}
-        </span>
+            </span>
+          </>
+        ) : null}
       </nav>
+      ) : null}
 
       {(horoscopeError || memeError) && (
         <div
