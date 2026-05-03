@@ -2,13 +2,19 @@
 
 import { useCallback, useState } from "react";
 
-type Headline = { title: string; link: string };
+type Headline = {
+  title: string;
+  link: string;
+  description?: string;
+  categories?: string[];
+};
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hint, setHint] = useState<string | undefined>();
   const [memeUrl, setMemeUrl] = useState<string | null>(null);
+  const [memePrompt, setMemePrompt] = useState<string | null>(null);
   const [headlines, setHeadlines] = useState<Headline[] | null>(null);
 
   const generate = useCallback(async () => {
@@ -16,12 +22,14 @@ export default function Home() {
     setError(null);
     setHint(undefined);
     setMemeUrl(null);
+    setMemePrompt(null);
     setHeadlines(null);
 
     try {
       const res = await fetch("/api/forecast", { method: "POST" });
       const data = (await res.json()) as {
         memeUrl?: string;
+        memePrompt?: string;
         headlines?: Headline[];
         error?: string;
         hint?: string;
@@ -35,6 +43,7 @@ export default function Home() {
 
       if (data.memeUrl && data.headlines) {
         setMemeUrl(data.memeUrl);
+        setMemePrompt(data.memePrompt ?? null);
         setHeadlines(data.headlines);
       } else {
         setError("Unexpected response from server");
@@ -55,8 +64,8 @@ export default function Home() {
         Today&apos;s tech vibe
       </h1>
       <p className="mb-10 max-w-md text-center text-[var(--muted)]">
-        Top 5 TechCrunch headlines, one meme about how your day in tech might feel.
-        Uses 1 Memelord credit per run.
+        Top 5 TechCrunch headlines feed an AI Gateway prompt, then Memelord renders
+        the vibe. Uses 1 Memelord credit per run plus one LLM call.
       </p>
 
       <button
@@ -90,6 +99,14 @@ export default function Home() {
 
       {memeUrl && !loading && (
         <div className="w-full max-w-md space-y-8">
+          {memePrompt && (
+            <p className="text-center text-sm italic leading-relaxed text-[var(--muted)]">
+              <span className="font-medium not-italic text-zinc-400">
+                AI prompt:{" "}
+              </span>
+              {memePrompt}
+            </p>
+          )}
           <div className="overflow-hidden rounded-2xl bg-[var(--surface)] p-2 ring-1 ring-[var(--border)]">
             {/* Signed Memelord URLs may be any host; plain img avoids remotePatterns churn */}
             {/* eslint-disable-next-line @next/next/no-img-element */}

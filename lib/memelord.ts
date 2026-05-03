@@ -9,15 +9,13 @@ type MemelordResult = {
 };
 
 /**
- * Builds the raw prompt from headline titles and calls Memelord image meme API.
+ * Sends a finished prompt to the Memelord image meme API.
  */
-export async function generateMeme(titles: string[]): Promise<string> {
+export async function generateMeme(prompt: string): Promise<string> {
   const key = process.env.MEMELORD_API_KEY;
   if (!key?.trim()) {
     throw new Error("MEMELORD_API_KEY is not set");
   }
-
-  const prompt = `${titles.join(" | ")} — forecast what my day working in tech will feel like as a meme.`;
 
   const res = await fetch(MEMELORD_URL, {
     method: "POST",
