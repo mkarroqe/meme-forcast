@@ -77,6 +77,8 @@ export function HoroscopeClient({
     Array(n).fill(undefined),
   );
   const [forecast, setForecast] = useState<string | null>(null);
+  /** Model id used for the LLM run that produced `forecast` (not the live dropdown). */
+  const [forecastModel, setForecastModel] = useState<string | null>(null);
   const [memeUrl, setMemeUrl] = useState<string | null>(null);
   const [horoscopeRunOnce, setHoroscopeRunOnce] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
@@ -115,11 +117,13 @@ export function HoroscopeClient({
   }, [modelMenuOpen]);
 
   const readHoroscope = useCallback(async () => {
+    const modelForThisRun = model;
     setHoroscopeLoading(true);
     setHoroscopeError(null);
     setMemeError(null);
     setHint(undefined);
     setForecast(null);
+    setForecastModel(null);
     setMemeUrl(null);
     setVibes(Array(n).fill(undefined));
 
@@ -127,7 +131,10 @@ export function HoroscopeClient({
       const res = await fetch("/api/horoscope", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ headlines: initialHeadlines, model }),
+        body: JSON.stringify({
+          headlines: initialHeadlines,
+          model: modelForThisRun,
+        }),
       });
 
       await consumeNdjsonStream(res, (ev) => {
@@ -139,6 +146,7 @@ export function HoroscopeClient({
           });
         } else if (ev.type === "forecast") {
           setForecast(ev.forecast);
+          setForecastModel(modelForThisRun);
         } else if (ev.type === "error") {
           const idx = ev.index;
           if (typeof idx === "number") {
@@ -380,9 +388,11 @@ export function HoroscopeClient({
                     <p className="font-[family-name:var(--serif)] text-lg italic leading-relaxed text-zinc-100 animate-fade-in sm:text-xl">
                       {forecast}
                     </p>
-                    <footer className="mt-4 text-[11px] uppercase tracking-wider text-[var(--muted)]">
-                      read with {model.replace("/", " · ")}
-                    </footer>
+                    {forecastModel ? (
+                      <footer className="mt-4 text-[11px] uppercase tracking-wider text-[var(--muted)]">
+                        read with {forecastModel.replace("/", " · ")}
+                      </footer>
+                    ) : null}
                   </>
                 ) : horoscopeLoading ? (
                   <p className="font-[family-name:var(--serif)] text-base italic leading-relaxed text-[var(--muted)]">
