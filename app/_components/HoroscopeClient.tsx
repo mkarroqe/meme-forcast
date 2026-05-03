@@ -229,7 +229,7 @@ export function HoroscopeClient({
       </header>
 
       <nav
-        className="animate-fade-in mb-10 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-[var(--muted)]"
+        className={`animate-fade-in mb-10 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-[var(--muted)] ${modelMenuOpen ? "relative z-[9999]" : ""}`}
         aria-label="Horoscope controls"
       >
         <button
@@ -258,7 +258,7 @@ export function HoroscopeClient({
             }}
             className="flex cursor-pointer items-center gap-1 border-none bg-transparent p-0 text-sm text-[var(--muted)] underline decoration-white/20 underline-offset-[5px] transition hover:text-zinc-200 focus:outline-none focus-visible:ring-1 focus-visible:ring-violet-500/40 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <span>{currentModelShort}</span>
+            <span className="inline-block">{currentModelShort}</span>
             <svg
               className={`h-[1em] w-[1em] shrink-0 text-zinc-400 transition-transform duration-200 ${modelMenuOpen ? "rotate-180" : ""}`}
               viewBox="0 0 12 12"
@@ -279,7 +279,7 @@ export function HoroscopeClient({
             <ul
               role="listbox"
               aria-labelledby="horoscope-model-trigger"
-              className="absolute left-1/2 top-[calc(100%+0.35rem)] z-50 min-w-[11rem] -translate-x-1/2 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]/95 py-1 shadow-xl shadow-black/40 backdrop-blur-md"
+              className="absolute left-0 top-[calc(100%+0.35rem)] z-10 min-w-[9.5rem] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]/95 py-0.5 shadow-xl shadow-black/40 backdrop-blur-md"
             >
               {AI_GATEWAY_MODELS.map((m) => (
                 <li key={m.id} role="presentation">
@@ -289,16 +289,16 @@ export function HoroscopeClient({
                     aria-selected={m.id === model}
                     className={
                       m.id === model
-                        ? "w-full cursor-pointer border-none bg-violet-500/10 px-3 py-2.5 text-left text-sm text-zinc-100"
-                        : "w-full cursor-pointer border-none bg-transparent px-3 py-2.5 text-left text-sm text-[var(--muted)] transition hover:bg-white/[0.06] hover:text-zinc-100"
+                        ? "w-full cursor-pointer border-none bg-violet-500/10 px-2 py-1 text-left text-sm font-normal leading-tight text-zinc-100"
+                        : "w-full cursor-pointer border-none bg-transparent px-2 py-1 text-left text-sm font-normal leading-tight text-[var(--muted)] transition hover:bg-white/[0.06] hover:text-zinc-100"
                     }
                     onClick={() => {
                       setModel(m.id);
                       setModelMenuOpen(false);
                     }}
                   >
-                    <span className="font-medium text-zinc-200">{m.short}</span>
-                    <span className="mt-0.5 block text-[11px] font-normal leading-snug text-zinc-500">
+                    <span className="block leading-tight">{m.short}</span>
+                    <span className="mt-px block text-[10px] font-normal leading-tight text-zinc-500/90">
                       {m.label.replace(/\s*\(default\)\s*$/, "")}
                     </span>
                   </button>
