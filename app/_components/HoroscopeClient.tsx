@@ -8,7 +8,7 @@ import { SparkleBox } from "./SparkleBox";
 
 const ROMAN = ["i", "ii", "iii", "iv", "v"] as const;
 
-const SESSION_AUTO_RAN_KEY = "horoscope:autoRanThisSession";
+const MAX_HOROSCOPE_FILL_ATTEMPTS = 4;
 
 type StreamEvent =
   | { type: "vibe"; index: number; vibe: string }
@@ -85,8 +85,9 @@ export function HoroscopeClient({
   const [horoscopeRunOnce, setHoroscopeRunOnce] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [showModelPicker, setShowModelPicker] = useState(false);
+  const [horoscopeAutoFillStuck, setHoroscopeAutoFillStuck] = useState(false);
   const modelMenuRef = useRef<HTMLSpanElement>(null);
-  const autoRanRef = useRef(false);
+  const horoscopeFillAttemptsRef = useRef(0);
 
   const currentModelShort = useMemo(
     () => AI_GATEWAY_MODELS.find((m) => m.id === model)?.short ?? model,
@@ -124,7 +125,11 @@ export function HoroscopeClient({
     if (!showModelPicker) setModelMenuOpen(false);
   }, [showModelPicker]);
 
-  const readHoroscope = useCallback(async (fromAutoRun = false) => {
+  const readHoroscope = useCallback(async (opts?: { resetAutoFill?: boolean }) => {
+    if (opts?.resetAutoFill) {
+      horoscopeFillAttemptsRef.current = 0;
+      setHoroscopeAutoFillStuck(false);
+    }
     const modelForThisRun = model;
     setHoroscopeLoading(true);
     setHoroscopeError(null);
@@ -173,23 +178,31 @@ export function HoroscopeClient({
     } finally {
       setHoroscopeLoading(false);
       setHoroscopeRunOnce(true);
-      if (fromAutoRun && typeof window !== "undefined") {
-        try {
-          sessionStorage.setItem(SESSION_AUTO_RAN_KEY, "1");
-        } catch {
-          /* quota / private mode */
-        }
-      }
     }
   }, [initialHeadlines, model, n]);
 
+  const hasHoroscopeContent = useMemo(() => {
+    if (Boolean(forecast?.trim())) return true;
+    if (vibes.length !== n) return false;
+    return vibes.every((v) => typeof v === "string" && v.trim().length > 0);
+  }, [forecast, vibes, n]);
+
   useEffect(() => {
-    if (autoRanRef.current) return;
-    autoRanRef.current = true;
     if (typeof window === "undefined") return;
-    if (sessionStorage.getItem(SESSION_AUTO_RAN_KEY) === "1") return;
-    void readHoroscope(true);
-  }, [readHoroscope]);
+    if (horoscopeLoading) return;
+    if (horoscopeError != null) return;
+    if (hasHoroscopeContent) {
+      horoscopeFillAttemptsRef.current = 0;
+      setHoroscopeAutoFillStuck(false);
+      return;
+    }
+    if (horoscopeFillAttemptsRef.current >= MAX_HOROSCOPE_FILL_ATTEMPTS) {
+      setHoroscopeAutoFillStuck(true);
+      return;
+    }
+    horoscopeFillAttemptsRef.current += 1;
+    void readHoroscope();
+  }, [readHoroscope, horoscopeLoading, horoscopeError, hasHoroscopeContent]);
 
   const generateMemeClick = useCallback(async () => {
     if (!forecast?.trim()) return;
@@ -231,11 +244,14 @@ export function HoroscopeClient({
   const showRowSpinner = (i: number) =>
     horoscopeLoading && vibes[i] === undefined;
 
-  const showHoroscopeNav =
-    showModelPicker ||
+  const showHoroscopeNavWhenPickerOff =
     horoscopeLoading ||
     horoscopeError != null ||
-    !horoscopeRunOnce;
+    horoscopeAutoFillStuck;
+
+  const showHoroscopeNav =
+    showModelPicker ||
+    (!showModelPicker && showHoroscopeNavWhenPickerOff);
 
   return (
     <main className="relative mx-auto max-w-6xl px-4 pb-24 pt-14 sm:pt-20">
@@ -288,15 +304,19 @@ export function HoroscopeClient({
       >
         <button
           type="button"
-          onClick={() => void readHoroscope()}
+          onClick={() => void readHoroscope({ resetAutoFill: true })}
           disabled={horoscopeLoading || memeLoading}
           className="cursor-pointer border-none bg-transparent p-0 underline decoration-white/20 underline-offset-[5px] transition hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {horoscopeLoading
-            ? "Consulting the stars…"
-            : showModelPicker && horoscopeRunOnce
-              ? "Read again"
-              : "Read my horoscope"}
+          {showModelPicker
+            ? horoscopeLoading
+              ? "Consulting the stars…"
+              : horoscopeRunOnce
+                ? "Read again"
+                : "Read my horoscope"
+            : horoscopeLoading
+              ? "Consulting the stars…"
+              : "Try again"}
         </button>
         {showModelPicker ? (
           <>
