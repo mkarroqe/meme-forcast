@@ -1,16 +1,82 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #0a0a0f;
-  --surface: #12121a;
-  --border: #2a2a3a;
-  --muted: #8b8b9e;
-  --accent: #6366f1;
-  --accent-bright: #818cf8;
+  --bg: #06060a;
+  --surface: #0e0e16;
+  --surface-elevated: #14141f;
+  --border: #2a2840;
+  --muted: #9494a8;
+  --accent: #a78bfa;
+  --accent-dim: #7c6bb0;
+  --glow: rgba(139, 92, 246, 0.12);
+  --serif: ui-serif, "Iowan Old Style", "Palatino Linotype", "Apple Garamond",
+    Baskerville, "Times New Roman", serif;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes starTwinkle {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.65s ease forwards;
+}
+
+.animate-twinkle {
+  animation: starTwinkle 4s ease-in-out infinite;
 }
 
 body {
-  background: var(--bg);
-  color: #e4e4e7;
+  color: #e8e6f0;
   min-height: 100vh;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  background:
+    radial-gradient(
+      ellipse 130% 90% at 50% -25%,
+      rgba(99, 102, 241, 0.18),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 70% 55% at 100% 20%,
+      rgba(168, 85, 247, 0.1),
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse 55% 45% at 0% 70%,
+      rgba(59, 130, 246, 0.08),
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 20% 40%,
+      rgba(255, 255, 255, 0.03) 0,
+      transparent 1px
+    ),
+    radial-gradient(
+      circle at 80% 60%,
+      rgba(255, 255, 255, 0.025) 0,
+      transparent 1px
+    ),
+    radial-gradient(
+      circle at 50% 90%,
+      rgba(255, 255, 255, 0.02) 0,
+      transparent 1px
+    ),
+    var(--bg);
+  background-attachment: fixed;
 }

@@ -1,5 +1,10 @@
 const MEMELORD_URL = "https://www.memelord.com/api/v1/ai-meme";
 
+/** Exact string POSTed to Memelord as `prompt` (after wrapping the forecast). */
+export function wrapForMemelord(forecast: string): string {
+  return `Make a meme that captures this vibe for someone working in tech today: ${forecast.trim()}`;
+}
+
 type MemelordResult = {
   success?: boolean;
   url?: string;

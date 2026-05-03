@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Tech vibe forecast",
-  description: "Top TechCrunch headlines, one meme forecast for your day in tech.",
+  title: "Tech horoscope",
+  description:
+    "TechCrunch signals, Co-Star-style vibes, and an optional Memelord meme for your day in tech.",
 };
 
 export default function RootLayout({
