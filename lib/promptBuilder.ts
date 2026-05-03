@@ -95,3 +95,62 @@ export async function buildHoroscope(
 
   return { forecast, headlinesWithVibes };
 }
+
+export type HoroscopeStreamEvent =
+  | { type: "vibe"; index: number; vibe: string }
+  | { type: "forecast"; forecast: string }
+  | { type: "error"; index?: number; message: string };
+
+/**
+ * Runs parallel per-headline vibes (emitting each as it resolves), then synthesis.
+ * Each event is one NDJSON line when used from the API route.
+ */
+export async function streamHoroscopeEvents(
+  headlines: Headline[],
+  model: GatewayModelId,
+  emit: (e: HoroscopeStreamEvent) => void,
+): Promise<void> {
+  if (!process.env.AI_GATEWAY_API_KEY?.trim()) {
+    emit({ type: "error", message: "AI_GATEWAY_API_KEY is not set" });
+    return;
+  }
+
+  if (!Array.isArray(headlines) || headlines.length !== 5) {
+    emit({ type: "error", message: "headlines must be an array of exactly 5 items" });
+    return;
+  }
+
+  const m = resolveModel(model);
+  const vibes: string[] = new Array(headlines.length).fill("");
+
+  await Promise.all(
+    headlines.map((h, i) =>
+      vibeFor(h, m)
+        .then((vibe) => {
+          vibes[i] = vibe;
+          emit({ type: "vibe", index: i, vibe });
+        })
+        .catch((err) => {
+          const message =
+            err instanceof Error ? err.message : String(err);
+          emit({ type: "error", index: i, message });
+          vibes[i] = "";
+        }),
+    ),
+  );
+
+  const headlinesWithVibes: HeadlineVibe[] = headlines.map((h, i) => ({
+    ...h,
+    vibe: vibes[i] || "…",
+  }));
+
+  try {
+    const forecast = await synthesizeForecast(headlinesWithVibes, m);
+    emit({ type: "forecast", forecast });
+  } catch (e) {
+    emit({
+      type: "error",
+      message: e instanceof Error ? e.message : String(e),
+    });
+  }
+}

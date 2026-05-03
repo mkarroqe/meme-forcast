@@ -1,9 +1,17 @@
 export const AI_GATEWAY_MODELS = [
-  { id: "anthropic/claude-sonnet-4.6", label: "Claude Sonnet 4.6 (default)" },
-  { id: "anthropic/claude-haiku-4.5", label: "Claude Haiku 4.5" },
-  { id: "openai/gpt-5.4", label: "GPT-5.4" },
-  { id: "openai/gpt-5.4-mini", label: "GPT-5.4 mini" },
-  { id: "openai/gpt-5.4-nano", label: "GPT-5.4 nano" },
+  {
+    id: "anthropic/claude-sonnet-4.6",
+    label: "Claude Sonnet 4.6 (default)",
+    short: "Sonnet",
+  },
+  {
+    id: "anthropic/claude-haiku-4.5",
+    label: "Claude Haiku 4.5",
+    short: "Haiku",
+  },
+  { id: "openai/gpt-5.4", label: "GPT-5.4", short: "GPT-5.4" },
+  { id: "openai/gpt-5.4-mini", label: "GPT-5.4 mini", short: "mini" },
+  { id: "openai/gpt-5.4-nano", label: "GPT-5.4 nano", short: "nano" },
 ] as const;
 
 export type GatewayModelId = (typeof AI_GATEWAY_MODELS)[number]["id"];

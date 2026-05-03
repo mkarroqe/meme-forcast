@@ -33,9 +33,10 @@ If your project has **AI Gateway** enabled, `AI_GATEWAY_API_KEY` is typically **
 
 ## How it works
 
-1. **`POST /api/horoscope`** — Fetches the TechCrunch RSS feed, runs five parallel “cosmic energy” `generateText` calls (one per headline) plus one synthesis for the **combined energy** forecast. Body: `{ "model": "anthropic/claude-sonnet-4.6" }` (optional; must be one of the curated ids in [`lib/models.ts`](lib/models.ts) or it falls back to `AI_GATEWAY_MODEL` / default).
-2. The UI shows each headline with its vibe, the combined forecast, and the **exact** Memelord prompt (`wrapForMemelord(forecast)`).
-3. **`POST /api/meme`** — Body: `{ "forecast": "..." }`. Server wraps the forecast, then `POST https://www.memelord.com/api/v1/ai-meme` with `Authorization: Bearer <MEMELORD_API_KEY>`.
+1. **Home page (RSC)** — Loads the top 5 TechCrunch headlines on the server (`getTopHeadlines`) so they appear immediately.
+2. **`POST /api/horoscope`** — Body: `{ "headlines": Headline[], "model"?: string }`. Streams **NDJSON** lines: `{ "type": "vibe", "index", "vibe" }` as each parallel headline call finishes, then `{ "type": "forecast", "forecast" }`. Optional `model` must be a curated id in [`lib/models.ts`](lib/models.ts) (else env / default).
+3. The UI shows each headline with a cosmic spinner until its vibe line arrives, then the combined fate; **Generate meme** still sends `wrapForMemelord(forecast)` to Memelord on the server only.
+4. **`POST /api/meme`** — Body: `{ "forecast": "..." }`. Server wraps the forecast, then `POST https://www.memelord.com/api/v1/ai-meme` with `Authorization: Bearer <MEMELORD_API_KEY>`.
 
 API keys are **only** used on the server (`app/api/horoscope/route.ts`, `app/api/meme/route.ts`); they are never sent to the browser.
 

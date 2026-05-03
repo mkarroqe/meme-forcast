@@ -1,32 +1,61 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveHoroscopeModel } from "@/lib/models";
-import { buildHoroscope } from "@/lib/promptBuilder";
-import { hintFromMessage, statusFromMessage } from "@/lib/routeErrors";
-import { getTopHeadlines } from "@/lib/techcrunch";
+import { streamHoroscopeEvents } from "@/lib/promptBuilder";
+import type { Headline } from "@/lib/techcrunch";
+
+function isHeadlineArray(x: unknown): x is Headline[] {
+  if (!Array.isArray(x) || x.length !== 5) return false;
+  return x.every(
+    (h) =>
+      h != null &&
+      typeof h === "object" &&
+      typeof (h as Headline).title === "string" &&
+      typeof (h as Headline).link === "string",
+  );
+}
 
 export async function POST(req: NextRequest) {
-  try {
-    const body = (await req.json().catch(() => ({}))) as { model?: string };
-    const model = resolveHoroscopeModel(body.model);
-    const headlines = await getTopHeadlines(5);
-    const { forecast, headlinesWithVibes } = await buildHoroscope(
-      headlines,
-      model,
-    );
+  const body = (await req.json().catch(() => (null))) as unknown;
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
-    return NextResponse.json({
-      headlines: headlinesWithVibes,
-      forecast,
-      model,
-    });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "Unknown error";
+  const b = body as { headlines?: unknown; model?: string };
+  if (!isHeadlineArray(b.headlines)) {
     return NextResponse.json(
-      {
-        error: message,
-        hint: hintFromMessage(message),
-      },
-      { status: statusFromMessage(message) },
+      { error: "body.headlines must be an array of exactly 5 headline objects" },
+      { status: 400 },
     );
   }
+
+  const model = resolveHoroscopeModel(b.model);
+  const headlines = b.headlines;
+
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (o: object) => {
+        controller.enqueue(encoder.encode(JSON.stringify(o) + "\n"));
+      };
+
+      try {
+        await streamHoroscopeEvents(headlines, model, send);
+      } catch (e) {
+        send({
+          type: "error",
+          message: e instanceof Error ? e.message : String(e),
+        });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "application/x-ndjson; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  });
 }

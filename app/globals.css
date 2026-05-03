@@ -42,6 +42,32 @@
   animation: starTwinkle 4s ease-in-out infinite;
 }
 
+@keyframes drift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(6px, -8px, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes spinSlow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-drift {
+  animation: drift 7s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spinSlow 4s linear infinite;
+}
+
 body {
   color: #e8e6f0;
   min-height: 100vh;
